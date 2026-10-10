@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#0b1220">
+  <meta name="description" content="HarborTrace — локальный HAR-анализатор: waterfall, медленные запросы, сравнение трасс и обезличенный экспорт.">
+  <title>HarborTrace — HAR inspector</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+  <script type="module" src="app.mjs"></script>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="#top" aria-label="HarborTrace home"><span class="brand-mark">H<span>↗</span></span><span>Harbor<span class="brand-muted">Trace</span><small>HAR INSPECTOR</small></span></a>
+    <div class="top-actions"><span class="local-badge"><i></i> Локальная обработка</span><a class="top-link" href="https://github.com/GhosTnever-lkm/harbortrace" target="_blank" rel="noreferrer">GitHub ↗</a><button class="button button-primary" id="openFiles">＋ Загрузить HAR</button><input id="fileInput" type="file" accept=".har,.json,application/json" multiple hidden></div>
+  </header>
+
+  <main id="top" class="shell">
+    <section class="intro"><div><p class="eyebrow">NETWORK TRACE WORKBENCH <span>·</span> 100% IN-BROWSER</p><h1>Разбери, что <span>тормозит</span> страницу.</h1><p class="lede">Исследуй сетевой waterfall, найди медленные и ошибочные запросы, сравни два HAR и выгрузи обезличенный отчёт. Файлы остаются на этом устройстве.</p></div><div class="hero-orbit" aria-hidden="true"><span class="orbit-ring"></span><span class="orbit-center">HAR</span><span class="orbit-node node-one">200</span><span class="orbit-node node-two">504</span><span class="orbit-node node-three">GET</span></div></section>
+
+    <section class="welcome" id="welcome">
+      <div class="welcome-icon">⌁</div><div class="welcome-copy"><h2>Начни с HAR-файла</h2><p>Экспортируй HAR из DevTools браузера и перетащи его сюда. Можно загрузить второй файл, чтобы сравнить изменения между сборками.</p><div class="welcome-actions"><button class="button button-primary" id="chooseFiles">Выбрать HAR-файл</button><button class="button button-quiet" id="loadSample">Открыть пример</button><span class="file-note">.har · JSON · до 100 MB</span></div></div>
+      <div class="drop-overlay" id="dropOverlay">Отпусти файл для анализа</div>
+    </section>
+
+    <section id="workspace" class="workspace" hidden>
+      <div class="tracebar"><div class="trace-title"><span class="file-icon">▤</span><div><strong id="traceName">Trace.har</strong><small id="traceMeta">HAR 1.2 · 0 запросов</small></div></div><div class="trace-tools"><button class="button button-quiet" id="compareButton" disabled><span aria-hidden="true">⇄</span><span class="button-label"> Сравнить трассы</span></button><button class="button button-quiet" id="exportSafe">⬇ Обезличенный HAR</button><button class="button button-quiet" id="exportCsv">CSV</button><button class="icon-button" id="clearTrace" aria-label="Очистить трассы" title="Очистить трассы">×</button></div></div>
+
+      <div class="summary-grid" id="summaryGrid"></div>
+      <section class="compare-panel" id="comparePanel" hidden><div class="section-head"><div><p class="eyebrow">BASELINE DIFF</p><h2>Что изменилось</h2></div><button class="icon-button" id="closeCompare" aria-label="Закрыть сравнение">×</button></div><div id="compareSummary" class="compare-summary"></div><div class="table-wrap"><table><thead><tr><th>Запрос</th><th>Было</th><th>Стало</th><th>Изменение</th></tr></thead><tbody id="compareRows"></tbody></table></div></section>
+
+      <div class="analysis-grid">
+        <section class="panel requests-panel"><div class="section-head"><div><p class="eyebrow">REQUEST TIMELINE</p><h2>Запросы <span id="requestCount" class="count-chip">0</span></h2></div><div class="request-controls"><label class="searchbox"><span aria-hidden="true">⌕</span><input id="searchInput" type="search" placeholder="URL, домен, тип…" aria-label="Поиск запросов"></label><select id="statusFilter" aria-label="Фильтр статуса"><option value="all">Все</option><option value="error">Ошибки</option><option value="slow">Медленные &gt; 1 с</option><option value="success">Успешные</option></select><select id="sortSelect" aria-label="Сортировка"><option value="time">По времени</option><option value="slow">Сначала долгие</option><option value="size">Сначала крупные</option><option value="status">По статусу</option></select></div></div>
+          <div class="request-head"><span>ЗАПРОС / ДОМЕН</span><span>СТАТУС</span><span>WATERFALL</span><span>ВРЕМЯ</span><span>РАЗМЕР</span></div><div id="requestList" class="request-list"></div><div id="emptyFiltered" class="empty-filtered" hidden>Ничего не найдено. Попробуй изменить поиск или фильтры.</div>
+        </section>
+        <aside class="panel hosts-panel"><div class="section-head"><div><p class="eyebrow">ORIGIN BREAKDOWN</p><h2>Домены</h2></div></div><div id="hostList" class="host-list"></div><div class="privacy-note"><span>◈</span><p><strong>Трасса не сохраняется</strong><br>Данные обрабатываются в текущей вкладке и удаляются при закрытии или сбросе.</p></div></aside>
+      </div>
+      <p class="footer-note">Показано <span id="visibleCount">0</span> из <span id="totalCount">0</span> запросов <span id="secondTraceNote" hidden>· в памяти также есть базовая трасса для сравнения</span></p>
+    </section>
+    <footer><span>HarborTrace <b>·</b> Open source, local-first</span><span>DevTools → Network → Export HAR</span></footer>
+  </main>
+
+  <dialog id="detailDialog" class="detail-dialog"><div class="dialog-head"><div><p class="eyebrow">REQUEST DETAILS</p><h2 id="detailTitle">Request</h2></div><button class="icon-button" id="closeDetail" aria-label="Закрыть">×</button></div><div id="detailBody"></div></dialog>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+</body>
+</html>

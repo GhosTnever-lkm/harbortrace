@@ -1,0 +1,9 @@
+{
+  "name": "harbortrace",
+  "version": "0.1.0",
+  "private": false,
+  "type": "module",
+  "scripts": { "test": "node --test", "check": "node --check core.mjs && node --check app.mjs && node --test" },
+  "engines": { "node": ">=20" },
+  "license": "MIT"
+}

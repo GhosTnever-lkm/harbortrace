@@ -45,15 +45,30 @@ test("compares request endpoints and reports latency or error regressions", () =
   assert.equal(api.avgBefore, 180); assert.equal(api.avgAfter, 60); assert.equal(api.regression, true); assert.equal(cdn.regression, false);
 });
 
+test("labels added and removed endpoints instead of reporting fake latency percentages", () => {
+  const before = parseHar({ log: { entries: [{ time: 20, request: { url: "https://gone.test/a" }, response: { status: 200 } }] } });
+  const after = parseHar({ log: { entries: [{ time: 30, request: { url: "https://new.test/b" }, response: { status: 200 } }] } });
+  const diff = compareTraces(before, after);
+  assert.ok(diff.some(row => row.removed && row.deltaPct === null));
+  assert.ok(diff.some(row => row.added && row.deltaPct === null));
+});
+
 test("redacts query secrets, auth headers, cookies and bodies without mutating source", () => {
   const trace = parseHar(makeHar());
-  const raw = structuredClone(trace.raw); raw.log.entries[0].request.postData = { mimeType: "application/json", text: "private post" };
+  const raw = structuredClone(trace.raw);
+  raw.log.entries[0].request.url += "#access_token=fragment-secret";
+  raw.log.entries[0].request.headers.push({ name: "X-User-Session", value: "private-session" });
+  raw.log.entries[0].request.postData = { mimeType: "application/json", text: "private post" };
+  raw.log.entries[0].response.redirectURL = "https://auth.test/continue?token=redirect-secret";
+  raw.log.entries[0]._webSocketMessages = [{ data: "private socket" }];
   const source = parseHar(raw); const redacted = redactHar(source);
   const req = redacted.log.entries[0].request; const res = redacted.log.entries[0].response;
   assert.match(req.url, /apiKey=%5BREDACTED%5D/); assert.equal(req.headers[0].value, "[REDACTED]");
   assert.equal(req.headers[1].value, "application/json"); assert.deepEqual(req.cookies, []); assert.deepEqual(res.cookies, []);
+  assert.equal(req.headers[2].value, "[REDACTED]"); assert.match(req.url, /access_token=%5BREDACTED%5D/);
   assert.equal(res.headers[0].value, "[REDACTED]"); assert.equal(req.postData.text, "[REMOVED]");
-  assert.equal(res.content.text, "[REMOVED]"); assert.match(source.requests[0].url, /secret/);
+  assert.equal(res.content.text, "[REMOVED]"); assert.match(res.redirectURL, /token=%5BREDACTED%5D/);
+  assert.deepEqual(redacted.log.entries[0]._webSocketMessages, []); assert.match(source.requests[0].url, /secret/);
 });
 
 test("exports quoted UTF-8 CSV with stable columns", () => {

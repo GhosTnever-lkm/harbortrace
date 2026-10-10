@@ -12,6 +12,19 @@ function urlParts(raw) {
 function headerValue(headers, name) {
   return asArray(headers).find(h => String(h?.name || "").toLowerCase() === name)?.value || "";
 }
+function redactUrl(raw) {
+  try {
+    const url = new URL(raw);
+    for (const key of [...url.searchParams.keys()]) if (SECRET_KEY.test(key)) url.searchParams.set(key, "[REDACTED]");
+    if (url.hash.length > 1) {
+      const fragment = new URLSearchParams(url.hash.slice(1));
+      let changed = false;
+      for (const key of [...fragment.keys()]) if (SECRET_KEY.test(key)) { fragment.set(key, "[REDACTED]"); changed = true; }
+      if (changed) url.hash = fragment.toString();
+    }
+    return url.toString();
+  } catch { return raw; }
+}
 
 export function parseHar(input, { name = "Trace", maxEntries = 200_000 } = {}) {
   let data;
@@ -129,22 +142,18 @@ export function redactHar(trace, { maskQuery = true, removeSensitiveHeaders = tr
   const clone = structuredClone(trace.raw);
   const maskHeaders = headers => asArray(headers).map(h => {
     const out = { ...h };
-    if (removeSensitiveHeaders && SENSITIVE_HEADER.test(String(h?.name || ""))) out.value = "[REDACTED]";
+    if (removeSensitiveHeaders && (SENSITIVE_HEADER.test(String(h?.name || "")) || SECRET_KEY.test(String(h?.name || "")))) out.value = "[REDACTED]";
     return out;
   });
   for (const entry of asArray(clone.log?.entries)) {
     const req = entry.request || {}; const res = entry.response || {};
-    if (maskQuery && typeof req.url === "string") {
-      try {
-        const url = new URL(req.url);
-        for (const key of [...url.searchParams.keys()]) if (SECRET_KEY.test(key)) url.searchParams.set(key, "[REDACTED]");
-        req.url = url.toString();
-      } catch {}
-    }
+    if (maskQuery && typeof req.url === "string") req.url = redactUrl(req.url);
+    if (maskQuery && typeof res.redirectURL === "string" && res.redirectURL) res.redirectURL = redactUrl(res.redirectURL);
     if (removeSensitiveHeaders) { req.headers = maskHeaders(req.headers); res.headers = maskHeaders(res.headers); }
     if (removeCookies) { req.cookies = []; res.cookies = []; }
     if (removePostData && req.postData) { req.postData = { mimeType: req.postData.mimeType || "", text: "[REMOVED]" }; }
     if (res.content?.text) res.content = { ...res.content, text: "[REMOVED]" };
+    if (removePostData && Array.isArray(entry._webSocketMessages)) entry._webSocketMessages = [];
   }
   return clone;
 }

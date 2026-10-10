@@ -4,6 +4,8 @@
 
 **Demo:** https://ghostnever-lkm.github.io/harbortrace/ · **Source:** https://github.com/GhosTnever-lkm/harbortrace · **License:** MIT
 
+![HarborTrace request waterfall, response summary, and host breakdown](assets/harbortrace-preview.png)
+
 ## Use it
 
 1. In Chrome, Edge, or Firefox DevTools, open **Network** and export a HAR capture.

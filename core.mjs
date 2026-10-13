@@ -66,7 +66,18 @@ export function parseHar(input, { name = "Trace", maxEntries = 200_000 } = {}) {
       raw: entry
     };
   });
-  const starts = requests.map(r => r.startedAt).filter(Number.isFinite);
+  let firstStart = Infinity;
+  let latestStart = -Infinity;
+  let startCount = 0;
+  let maxDuration = 0;
+  for (const request of requests) {
+    if (Number.isFinite(request.startedAt)) {
+      startCount++;
+      firstStart = Math.min(firstStart, request.startedAt);
+      latestStart = Math.max(latestStart, request.startedAt);
+    }
+    maxDuration = Math.max(maxDuration, request.duration);
+  }
   const totalTime = requests.reduce((sum, r) => sum + r.duration, 0);
   const totalBytes = requests.reduce((sum, r) => sum + r.transferred, 0);
   return {
@@ -80,7 +91,7 @@ export function parseHar(input, { name = "Trace", maxEntries = 200_000 } = {}) {
       failures: requests.filter(r => r.error).length,
       slow: requests.filter(r => r.duration >= 1000).length,
       totalMs: totalTime,
-      wallMs: starts.length > 1 ? Math.max(...starts) - Math.min(...starts) + Math.max(...requests.map(r => r.duration)) : totalTime,
+      wallMs: startCount > 1 ? latestStart - firstStart + maxDuration : totalTime,
       bytes: totalBytes,
       hosts: new Set(requests.map(r => r.host)).size,
       cached: requests.filter(r => r.cache).length,

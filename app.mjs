@@ -43,8 +43,8 @@ function renderRequests() {
   const rows = filterRequests(state.current, { query: $("searchInput").value, status: $("statusFilter").value, sort: $("sortSelect").value });
   state.rows = rows; $("requestCount").textContent = rows.length.toLocaleString(); $("visibleCount").textContent = rows.length.toLocaleString(); $("totalCount").textContent = state.current.requests.length.toLocaleString();
   $("emptyFiltered").hidden = rows.length > 0;
-  const maxDuration = Math.max(1, ...state.current.requests.map(r => r.duration));
-  const minStart = Math.min(...state.current.requests.map(r => r.startedAt ?? 0));
+  const maxDuration = Math.max(1, state.current.requests.reduce((max, r) => Math.max(max, r.duration), 0));
+  const minStart = state.current.requests.reduce((min, r) => Math.min(min, r.startedAt ?? 0), Infinity);
   $("requestList").innerHTML = rows.slice(0, 2500).map((r, index) => {
     const start = r.startedAt === null ? 0 : Math.max(0, r.startedAt - minStart);
     const maxStart = Math.max(1, state.current.stats.wallMs - maxDuration);
@@ -57,7 +57,7 @@ function renderRequests() {
   $("requestList").querySelectorAll(".request-row").forEach(button => button.addEventListener("click", () => showDetails(state.current.requests[Number(button.dataset.row)])));
 }
 function renderHosts() {
-  const hosts = groupHosts(state.current); const maxBytes = Math.max(1, ...hosts.map(h => h.bytes));
+  const hosts = groupHosts(state.current); const maxBytes = Math.max(1, hosts.reduce((max, h) => Math.max(max, h.bytes), 0));
   $("hostList").innerHTML = hosts.slice(0, 14).map((h, i) => `<div class="host-row"><div class="host-top"><span class="host-index">${String(i+1).padStart(2,"0")}</span><strong title="${esc(h.host)}">${esc(h.host)}</strong><span>${h.count}</span></div><div class="host-meter"><i style="width:${Math.max(2,h.bytes/maxBytes*100).toFixed(1)}%"></i></div><div class="host-meta"><span>${formatBytes(h.bytes)}</span><span>${h.failures ? `<b class="host-errors">${h.failures} errors</b>` : `${formatMs(h.ms)} total`}</span></div></div>`).join("") || `<p class="muted">Нет доменов в трассе.</p>`;
 }
 function showDetails(r) {

@@ -71,6 +71,17 @@ test("redacts query secrets, auth headers, cookies and bodies without mutating s
   assert.deepEqual(redacted.log.entries[0]._webSocketMessages, []); assert.match(source.requests[0].url, /secret/);
 });
 
+test("redacts credentials embedded in request and redirect URLs", () => {
+  const raw = makeHar();
+  raw.log.entries[0].request.url = "https://alice:private-password@api.example.test/items?keep=yes";
+  raw.log.entries[0].response.redirectURL = "https://service:redirect-password@auth.example.test/continue";
+  const redacted = redactHar(parseHar(raw));
+  assert.equal(redacted.log.entries[0].request.url, "https://api.example.test/items?keep=yes");
+  assert.equal(redacted.log.entries[0].response.redirectURL, "https://auth.example.test/continue");
+  assert.match(raw.log.entries[0].request.url, /private-password/);
+  assert.match(raw.log.entries[0].response.redirectURL, /redirect-password/);
+});
+
 test("exports quoted UTF-8 CSV with stable columns", () => {
   const csv = exportCsv(parseHar(makeHar()).requests);
   assert.ok(csv.startsWith("\ufeff\"method\",\"status\"")); assert.ok(csv.includes("api.example.test")); assert.ok(csv.includes("\r\n"));

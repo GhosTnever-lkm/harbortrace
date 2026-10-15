@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.2 - 2026-10-15
+
+- Remove embedded username and password credentials from request and redirect URLs in scrubbed HAR exports.
+
 ## 0.1.1 - 2026-10-13
 
 - Avoid argument-limit crashes when analyzing HAR files with large request counts or many hosts.

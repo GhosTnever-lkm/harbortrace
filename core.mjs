@@ -15,6 +15,9 @@ function headerValue(headers, name) {
 function redactUrl(raw) {
   try {
     const url = new URL(raw);
+    // URL userinfo can carry credentials even when no sensitive query is present.
+    url.username = "";
+    url.password = "";
     for (const key of [...url.searchParams.keys()]) if (SECRET_KEY.test(key)) url.searchParams.set(key, "[REDACTED]");
     if (url.hash.length > 1) {
       const fragment = new URLSearchParams(url.hash.slice(1));

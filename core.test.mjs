@@ -82,6 +82,25 @@ test("redacts credentials embedded in request and redirect URLs", () => {
   assert.match(raw.log.entries[0].response.redirectURL, /redirect-password/);
 });
 
+test("redacts common camelCase secret names without masking unrelated keys", () => {
+  const raw = makeHar();
+  raw.log.entries[0].request.url = "https://api.example.test/items?clientSecret=private&refreshToken=private&sessionId=private&monkey=visible";
+  raw.log.entries[0].request.headers = [
+    { name: "X-ClientSecret", value: "private-header" },
+    { name: "X-RefreshToken", value: "private-header" },
+    { name: "X-Monkey", value: "visible-header" }
+  ];
+  const redacted = redactHar(parseHar(raw));
+  const url = new URL(redacted.log.entries[0].request.url);
+  assert.equal(url.searchParams.get("clientSecret"), "[REDACTED]");
+  assert.equal(url.searchParams.get("refreshToken"), "[REDACTED]");
+  assert.equal(url.searchParams.get("sessionId"), "[REDACTED]");
+  assert.equal(url.searchParams.get("monkey"), "visible");
+  assert.equal(redacted.log.entries[0].request.headers[0].value, "[REDACTED]");
+  assert.equal(redacted.log.entries[0].request.headers[1].value, "[REDACTED]");
+  assert.equal(redacted.log.entries[0].request.headers[2].value, "visible-header");
+});
+
 test("exports quoted UTF-8 CSV with stable columns", () => {
   const csv = exportCsv(parseHar(makeHar()).requests);
   assert.ok(csv.startsWith("\ufeff\"method\",\"status\"")); assert.ok(csv.includes("api.example.test")); assert.ok(csv.includes("\r\n"));

@@ -1,10 +1,14 @@
 export class HarError extends Error {}
 
-const SECRET_KEY = /(^|[-_])(authorization|proxy-authorization|cookie|set-cookie|token|api[-_]?key|apikey|secret|password|passwd|session|auth|signature|sig)([-_]|$)/i;
+const SECRET_WORDS = new Set(["authorization", "cookie", "set", "token", "secret", "password", "passwd", "session", "auth", "signature", "sig"]);
 const SENSITIVE_HEADER = /^(authorization|proxy-authorization|cookie|set-cookie|x-api-key|api-key|x-auth-token)$/i;
 
 function asArray(value) { return Array.isArray(value) ? value : []; }
 function finite(value) { const n = Number(value); return Number.isFinite(n) && n >= 0 ? n : 0; }
+function isSecretKey(value) {
+  const words = String(value || "").replace(/([a-z0-9])([A-Z])/g, "$1 $2").toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
+  return words.some(word => SECRET_WORDS.has(word)) || words.some((word, index) => word === "api" && words[index + 1] === "key");
+}
 function urlParts(raw) {
   try { const u = new URL(raw); return { url: u, host: u.host, path: u.pathname || "/" }; }
   catch { return { url: null, host: "(invalid URL)", path: String(raw || "") }; }
@@ -18,11 +22,11 @@ function redactUrl(raw) {
     // URL userinfo can carry credentials even when no sensitive query is present.
     url.username = "";
     url.password = "";
-    for (const key of [...url.searchParams.keys()]) if (SECRET_KEY.test(key)) url.searchParams.set(key, "[REDACTED]");
+    for (const key of [...url.searchParams.keys()]) if (isSecretKey(key)) url.searchParams.set(key, "[REDACTED]");
     if (url.hash.length > 1) {
       const fragment = new URLSearchParams(url.hash.slice(1));
       let changed = false;
-      for (const key of [...fragment.keys()]) if (SECRET_KEY.test(key)) { fragment.set(key, "[REDACTED]"); changed = true; }
+      for (const key of [...fragment.keys()]) if (isSecretKey(key)) { fragment.set(key, "[REDACTED]"); changed = true; }
       if (changed) url.hash = fragment.toString();
     }
     return url.toString();
@@ -156,7 +160,7 @@ export function redactHar(trace, { maskQuery = true, removeSensitiveHeaders = tr
   const clone = structuredClone(trace.raw);
   const maskHeaders = headers => asArray(headers).map(h => {
     const out = { ...h };
-    if (removeSensitiveHeaders && (SENSITIVE_HEADER.test(String(h?.name || "")) || SECRET_KEY.test(String(h?.name || "")))) out.value = "[REDACTED]";
+    if (removeSensitiveHeaders && (SENSITIVE_HEADER.test(String(h?.name || "")) || isSecretKey(h?.name))) out.value = "[REDACTED]";
     return out;
   });
   for (const entry of asArray(clone.log?.entries)) {

@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.3 - 2026-10-24
+
+- Detect camelCase and separated secret names such as `clientSecret`, `refreshToken`, and `sessionId` in scrubbed HAR exports.
+- Add regression coverage confirming common credential names are removed while unrelated names remain visible.
+
 ## 0.1.2 - 2026-10-15
 
 - Remove embedded username and password credentials from request and redirect URLs in scrubbed HAR exports.

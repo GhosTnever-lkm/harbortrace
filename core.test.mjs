@@ -85,6 +85,10 @@ test("redacts credentials embedded in request and redirect URLs", () => {
 test("redacts common camelCase secret names without masking unrelated keys", () => {
   const raw = makeHar();
   raw.log.entries[0].request.url = "https://api.example.test/items?clientSecret=private&refreshToken=private&sessionId=private&monkey=visible";
+  raw.log.entries[0].request.queryString = [
+    { name: "clientSecret", value: "private-query-secret", comment: "preserve metadata" },
+    { name: "page", value: "2" }
+  ];
   raw.log.entries[0].request.headers = [
     { name: "X-ClientSecret", value: "private-header" },
     { name: "X-RefreshToken", value: "private-header" },
@@ -96,6 +100,10 @@ test("redacts common camelCase secret names without masking unrelated keys", () 
   assert.equal(url.searchParams.get("refreshToken"), "[REDACTED]");
   assert.equal(url.searchParams.get("sessionId"), "[REDACTED]");
   assert.equal(url.searchParams.get("monkey"), "visible");
+  assert.equal(redacted.log.entries[0].request.queryString[0].value, "[REDACTED]");
+  assert.equal(redacted.log.entries[0].request.queryString[0].comment, "preserve metadata");
+  assert.equal(redacted.log.entries[0].request.queryString[1].value, "2");
+  assert.doesNotMatch(JSON.stringify(redacted), /private-query-secret/);
   assert.equal(redacted.log.entries[0].request.headers[0].value, "[REDACTED]");
   assert.equal(redacted.log.entries[0].request.headers[1].value, "[REDACTED]");
   assert.equal(redacted.log.entries[0].request.headers[2].value, "visible-header");

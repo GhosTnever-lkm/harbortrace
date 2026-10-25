@@ -18,7 +18,7 @@ Use **Open example** to explore the interface without a capture.
 
 ## What the scrubbed export removes
 
-- Query parameters whose names look like tokens, API keys, secrets, passwords, session IDs, authorization values, or signatures.
+- Query parameters whose names look like tokens, API keys, secrets, passwords, session IDs, authorization values, or signatures are redacted both in URLs and HAR `request.queryString` fields.
 - Username and password credentials embedded in request or redirect URLs.
 - Authorization, proxy-authorization, cookie, set-cookie, and API-key headers; cookie arrays.
 - Request body text and response body text.

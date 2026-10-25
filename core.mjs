@@ -166,6 +166,9 @@ export function redactHar(trace, { maskQuery = true, removeSensitiveHeaders = tr
   for (const entry of asArray(clone.log?.entries)) {
     const req = entry.request || {}; const res = entry.response || {};
     if (maskQuery && typeof req.url === "string") req.url = redactUrl(req.url);
+    if (maskQuery && Array.isArray(req.queryString)) {
+      req.queryString = req.queryString.map(param => isSecretKey(param?.name) ? { ...param, value: "[REDACTED]" } : param);
+    }
     if (maskQuery && typeof res.redirectURL === "string" && res.redirectURL) res.redirectURL = redactUrl(res.redirectURL);
     if (removeSensitiveHeaders) { req.headers = maskHeaders(req.headers); res.headers = maskHeaders(res.headers); }
     if (removeCookies) { req.cookies = []; res.cookies = []; }

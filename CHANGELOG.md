@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.4 - 2026-10-25
+
+- Redact credential-like values in HAR `request.queryString` fields as well as the request URL.
+- Preserve unrelated query parameters and metadata in the scrubbed HAR export.
+
 ## 0.1.3 - 2026-10-24
 
 - Detect camelCase and separated secret names such as `clientSecret`, `refreshToken`, and `sessionId` in scrubbed HAR exports.

@@ -1,6 +1,6 @@
 {
   "name": "harbortrace",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "private": false,
   "type": "module",
   "scripts": { "test": "node --test", "check": "node --check core.mjs && node --check app.mjs && node --test" },
